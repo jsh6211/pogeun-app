@@ -20,37 +20,25 @@ workflows:
           cp /tmp/backup/main.dart lib/main.dart
           cp /tmp/backup/pubspec.yaml pubspec.yaml
 
-          # 루트 build.gradle에 모든 subproject(flutter_tts 등)의 compileSdkVersion을 34로 세팅하는 코드 주입
+          # gradle.properties에 compileSdkVersion과 targetSdkVersion 속성을 전역(Global)으로 추가
+          echo "android.compileSdkVersion=34" >> android/gradle.properties
+          echo "android.targetSdkVersion=34" >> android/gradle.properties
+
+          # Python을 사용해 Flutter가 생성한 app/build.gradle 설정 최신화
           python3 -c "
           import os
 
-          # 1. 앱 레벨 build.gradle 수정
           gradle_path = 'android/app/build.gradle'
           if os.path.exists(gradle_path):
               with open(gradle_path, 'r') as f:
-                  txt = f.read()
-              txt = txt.replace('flutter.compileSdkVersion', '34')
-              txt = txt.replace('flutter.targetSdkVersion', '34')
-              with open(gradle_path, 'w') as f:
-                  f.write(txt)
+                  content = f.read()
 
-          # 2. 루트 레벨 build.gradle 수정 (flutter_tts 등 의존성 모듈 SDK 강제 상승)
-          root_gradle = 'android/build.gradle'
-          if os.path.exists(root_gradle):
-              override_code = '''
-          subprojects {
-              subproject ->
-                  afterEvaluate {
-                      if (subproject.hasProperty('android')) {
-                          subproject.android {
-                              compileSdkVersion 34
-                          }
-                      }
-                  }
-          }
-          '''
-              with open(root_gradle, 'a') as f:
-                  f.write(override_code)
+              # flutter.compileSdkVersion 구문을 숫자 34로 직접 교체
+              content = content.replace('flutter.compileSdkVersion', '34')
+              content = content.replace('flutter.targetSdkVersion', '34')
+
+              with open(gradle_path, 'w') as f:
+                  f.write(content)
           "
       - name: Get Flutter packages
         script: flutter pub get
