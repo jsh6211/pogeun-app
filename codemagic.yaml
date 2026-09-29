@@ -6,43 +6,51 @@ workflows:
     environment:
       flutter: stable
     scripts:
-      - name: Generate full Flutter project structure & Fix compileSdk
+      - name: Generate full Flutter project structure
         script: |
-          # 1. 백업
           mkdir -p /tmp/backup
           cp lib/main.dart /tmp/backup/main.dart
           cp pubspec.yaml /tmp/backup/pubspec.yaml
 
-          # 2. 프로젝트 재생성
           cd ..
           rm -rf clone
           flutter create --org com.pogeun --project-name pogeun_app clone
           cd clone
 
-          # 3. 소스코드 복원
           cp /tmp/backup/main.dart lib/main.dart
           cp /tmp/backup/pubspec.yaml pubspec.yaml
 
-          # 4. Python 스크립트로 build.gradle 내 compileSdk / targetSdk / minSdk 강제 수정
+          # 루트 build.gradle에 모든 subproject(flutter_tts 등)의 compileSdkVersion을 34로 세팅하는 코드 주입
           python3 -c "
-          import re, os
+          import os
 
+          # 1. 앱 레벨 build.gradle 수정
           gradle_path = 'android/app/build.gradle'
-          if not os.path.exists(gradle_path):
-              gradle_path = 'android/app/build.gradle.kts'
+          if os.path.exists(gradle_path):
+              with open(gradle_path, 'r') as f:
+                  txt = f.read()
+              txt = txt.replace('flutter.compileSdkVersion', '34')
+              txt = txt.replace('flutter.targetSdkVersion', '34')
+              with open(gradle_path, 'w') as f:
+                  f.write(txt)
 
-          with open(gradle_path, 'r') as f:
-              content = f.read()
-
-          # compileSdk / compileSdkVersion을 34로 교체
-          content = re.sub(r'compileSdk(Version)?\s*=?\s*flutter\.compileSdkVersion', 'compileSdk = 34', content)
-          content = re.sub(r'compileSdk(Version)?\s*=?\s*\d+', 'compileSdk = 34', content)
-          content = re.sub(r'targetSdk(Version)?\s*=?\s*flutter\.targetSdkVersion', 'targetSdk = 34', content)
-
-          with open(gradle_path, 'w') as f:
-              f.write(content)
-
-          print('Successfully updated android build configuration to SDK 34')
+          # 2. 루트 레벨 build.gradle 수정 (flutter_tts 등 의존성 모듈 SDK 강제 상승)
+          root_gradle = 'android/build.gradle'
+          if os.path.exists(root_gradle):
+              override_code = '''
+          subprojects {
+              subproject ->
+                  afterEvaluate {
+                      if (subproject.hasProperty('android')) {
+                          subproject.android {
+                              compileSdkVersion 34
+                          }
+                      }
+                  }
+          }
+          '''
+              with open(root_gradle, 'a') as f:
+                  f.write(override_code)
           "
       - name: Get Flutter packages
         script: flutter pub get
