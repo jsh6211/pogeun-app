@@ -13,7 +13,7 @@ workflows:
           cp lib/main.dart /tmp/backup/main.dart
           cp pubspec.yaml /tmp/backup/pubspec.yaml
 
-          # 안드로이드 구조를 포함한 완벽한 Flutter 프로젝트 생성
+          # 안드로이드 구조를 포함한 Flutter 프로젝트 생성
           cd ..
           rm -rf clone
           flutter create --org com.pogeun --project-name pogeun_app clone
@@ -22,6 +22,11 @@ workflows:
           # 백업해둔 메인 코드 및 pubspec 파일 덮어쓰기
           cp /tmp/backup/main.dart lib/main.dart
           cp /tmp/backup/pubspec.yaml pubspec.yaml
+
+          # compileSdk 및 targetSdk 버전을 34로 자동 업데이트 (오류 해결 핵심)
+          sed -i '' 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
+          sed -i '' 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle
+          sed -i '' 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle
       - name: Get Flutter packages
         script: flutter pub get
       - name: Build APK
