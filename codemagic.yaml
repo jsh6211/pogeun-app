@@ -8,34 +8,26 @@ workflows:
     scripts:
       - name: Generate full Flutter project structure
         script: |
-          # 백업용 임시 폴더에 작성한 파일 복사
           mkdir -p /tmp/backup
           cp lib/main.dart /tmp/backup/main.dart
           cp pubspec.yaml /tmp/backup/pubspec.yaml
 
-          # 안드로이드 구조를 포함한 Flutter 프로젝트 생성
           cd ..
           rm -rf clone
           flutter create --org com.pogeun --project-name pogeun_app clone
           cd clone
 
-          # 백업해둔 메인 코드 및 pubspec 파일 덮어쓰기
           cp /tmp/backup/main.dart lib/main.dart
           cp /tmp/backup/pubspec.yaml pubspec.yaml
-
-          # compileSdk 버전을 34로 업데이트 (경로 수정 완료)
-          if [ -f "android/app/build.gradle" ]; then
-            sed -i '' 's/compileSdkVersion.*/compileSdkVersion 34/g' android/app/build.gradle
-            sed -i '' 's/compileSdk =.*/compileSdk = 34/g' android/app/build.gradle
-            sed -i '' 's/targetSdkVersion.*/targetSdkVersion 34/g' android/app/build.gradle
-          fi
-          if [ -f "android/app/build.gradle.kts" ]; then
-            sed -i '' 's/compileSdk =.*/compileSdk = 34/g' android/app/build.gradle.kts
-            sed -i '' 's/targetSdk =.*/targetSdk = 34/g' android/app/build.gradle.kts
-          fi
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Build APK
-        script: flutter build apk --release
+      - name: Build APK with SDK 34
+        script: |
+          flutter build apk --release --extra-front-end-options=--no-implicit-casts --build-number=1 --build-name=1.0.0 --target-platform=android-arm64 --config-only
+          
+          # Gradle 속성을 통해 compileSdkVersion 및 targetSdkVersion 강제 적용
+          cd android
+          ./gradlew assembleRelease -Pandroid.compileSdkVersion=34 -Pandroid.targetSdkVersion=34
     artifacts:
+      - android/app/build/outputs/apk/release/*.apk
       - build/app/outputs/flutter-apk/*.apk
