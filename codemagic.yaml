@@ -23,10 +23,16 @@ workflows:
           cp /tmp/backup/main.dart lib/main.dart
           cp /tmp/backup/pubspec.yaml pubspec.yaml
 
-          # compileSdk 및 targetSdk 버전을 34로 자동 업데이트 (오류 해결 핵심)
-          sed -i '' 's/compileSdkVersion flutter.compileSdkVersion/compileSdkVersion 34/g' android/app/build.gradle
-          sed -i '' 's/compileSdk = flutter.compileSdkVersion/compileSdk = 34/g' android/app/build.gradle
-          sed -i '' 's/targetSdkVersion flutter.targetSdkVersion/targetSdkVersion 34/g' android/app/build.gradle
+          # compileSdk 버전을 34로 업데이트 (경로 수정 완료)
+          if [ -f "android/app/build.gradle" ]; then
+            sed -i '' 's/compileSdkVersion.*/compileSdkVersion 34/g' android/app/build.gradle
+            sed -i '' 's/compileSdk =.*/compileSdk = 34/g' android/app/build.gradle
+            sed -i '' 's/targetSdkVersion.*/targetSdkVersion 34/g' android/app/build.gradle
+          fi
+          if [ -f "android/app/build.gradle.kts" ]; then
+            sed -i '' 's/compileSdk =.*/compileSdk = 34/g' android/app/build.gradle.kts
+            sed -i '' 's/targetSdk =.*/targetSdk = 34/g' android/app/build.gradle.kts
+          fi
       - name: Get Flutter packages
         script: flutter pub get
       - name: Build APK
